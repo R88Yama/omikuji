@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>おみくじ</title>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f5ef;
+      text-align: center;
+      padding-top: 15vh;
+    }
+
+    button {
+      font-size: 1.2rem;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      background: #c62828;
+      color: white;
+    }
+
+    /* ===== 演出用 ===== */
+
+    /* 回転する絵文字 */
+    #spinner {
+      margin-top: 24px;
+      font-size: 4rem;      /* ← サイズはここ */
+      display: none;        /* ← 初期は非表示 */
+      animation: spin 0.6s linear infinite;
+      line-height: 1;
+    }
+
+    /* 回らない文章 */
+    #loadingText {
+      margin-top: 8px;
+      font-size: 1rem;
+      color: #555;
+      display: none;        /* ← 初期は非表示 */
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* ===== 結果表示 ===== */
+
+    #result {
+      margin-top: 24px;
+      font-size: 1.6rem;
+      font-weight: bold;
+    }
+
+    #special {
+      margin-top: 24px;
+      font-size: 2.4rem;
+      font-weight: bold;
+      color: #c62828;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>おみくじ</h1>
+
+  <button id="drawBtn" onclick="drawOmikuji()">引く</button>
+
+  <!-- 演出 -->
+  <div id="spinner">🥠</div>
+  <div id="loadingText">日頃の行い評価中...</div>
+
+  <!-- 結果 -->
+  <div id="result"></div>
+  <div id="special"></div>
+
+  <script>
+    /* ===== 運勢データ（確率つき・各3種類） ===== */
+    const omikuji = [
+      {
+        name: "大吉",
+        weight: 5,
+        msgs: [
+          "物事が順調に進みやすい日。迷ったら前向きな選択で問題ない。",
+          "努力が結果に結びつきやすい。積み重ねてきたことを信じてよい。",
+          "周囲からの評価が上がりやすい。普段通りが一番強い。"
+        ]
+      },
+      {
+        name: "中吉",
+        weight: 15,
+        msgs: [
+          "安定した運気。大きな挑戦より、堅実な行動が向いている。",
+          "判断が比較的冷静。焦らなければ失敗は避けられる。",
+          "人間関係が穏やか。協力を意識すると物事が進む。"
+        ]
+      },
+      {
+        name: "小吉",
+        weight: 20,
+        msgs: [
+          "小さな良いことが起きやすい日。期待しすぎないのがコツ。",
+          "派手さはないが悪くない。日常を丁寧に過ごすと吉。",
+          "努力が無駄にならない。結果は少し遅れて出る。"
+        ]
+      },
+      {
+        name: "吉",
+        weight: 30,
+        msgs: [
+          "特別な変化は少ない。現状維持が最善。",
+          "普通の日。無理をしなければ問題は起きにくい。",
+          "可もなく不可もなし。予定通り進めるのが正解。"
+        ]
+      },
+      {
+        name: "末吉",
+        weight: 15,
+        msgs: [
+          "前半はやや停滞。後半に持ち直す。",
+          "焦ると裏目に出る。時間を味方につけること。",
+          "小さな判断ミスに注意。確認を怠らなければ問題ない。"
+        ]
+      },
+      {
+        name: "凶",
+        weight: 10,
+        msgs: [
+          "判断がぶれやすい日。重要な決断は慎重に。",
+          "余計な一言が誤解を招く。発言は控えめに。",
+          "予定外の出来事が起きやすい。余裕を持って行動。"
+        ]
+      },
+      {
+        name: "大凶",
+        weight: 5,
+        msgs: [
+          "無理をすると消耗しやすい。今日は守りを優先。",
+          "流れが良くない。大きな変更は避けた方が無難。",
+          "休息が必要な日。体調管理を最優先に。"
+        ]
+      }
+    ];
+
+    /* ===== 確率付き抽選 ===== */
+    function drawWeightedOmikuji() {
+      const total = omikuji.reduce((sum, o) => sum + o.weight, 0);
+      let rand = Math.random() * total;
+
+      for (const o of omikuji) {
+        if (rand < o.weight) {
+          const msg = o.msgs[Math.floor(Math.random() * o.msgs.length)];
+          return { name: o.name, msg };
+        }
+        rand -= o.weight;
+      }
+    }
+
+    /* ===== ボタン処理 ===== */
+    function drawOmikuji() {
+      const btn = document.getElementById("drawBtn");
+      const spinner = document.getElementById("spinner");
+      const loadingText = document.getElementById("loadingText");
+      const result = document.getElementById("result");
+      const special = document.getElementById("special");
+
+      btn.disabled = true;
+      result.innerHTML = "";
+      special.innerHTML = "";
+
+      // 演出開始
+      spinner.style.display = "block";
+      loadingText.style.display = "block";
+
+      setTimeout(() => {
+        // 演出終了
+        spinner.style.display = "none";
+        loadingText.style.display = "none";
+
+        let count = Number(localStorage.getItem("omikujiCount")) || 0;
+        count++;
+        localStorage.setItem("omikujiCount", count);
+
+        // 10回ごとの特別メッセージ
+        if (count % 10 === 0) {
+          special.innerHTML =
+            "【特別メッセージ】<br><br>" +
+            count + "回引きました。<br><br>" +
+            "運勢は参考程度で十分。<br>" +
+            "<strong>あとは自分の判断を信じて。</strong><br>"+
+            "ただしおみくじは一回で十分。引き直す必要なし。";
+          btn.disabled = false;
+          return;
+        }
+
+        // 通常結果
+        const r = drawWeightedOmikuji();
+        result.innerHTML =
+          r.name + "<br><small>" + r.msg + "</small>";
+
+        btn.disabled = false;
+      }, 1500);
+    }
+  </script>
+
+</body>
+</html>
