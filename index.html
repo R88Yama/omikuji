@@ -148,18 +148,20 @@
     ];
 
     /* ===== 確率付き抽選 ===== */
-    function drawWeightedOmikuji() {
-      const total = omikuji.reduce((sum, o) => sum + o.weight, 0);
-      let rand = Math.random() * total;
+function drawWeightedOmikuji() {
+  const total = omikuji.reduce((sum, o) => sum + o.weight, 0);
+  let rand = Math.random() * total;
 
-      for (const o of omikujio {
-        if (rand < o.weight) {
-          const msg = o.msgs[Math.floor(Math.random() * o.msgs.length)];
-          return { name: o.name, msg };
-        }
-        rand -= o.weight;
-      }
+  for (const o of omikuji) {
+    if (rand < o.weight) {
+      const msg = o.msgs[Math.floor(Math.random() * o.msgs.length)];
+      return { name: o.name, msg };
     }
+    rand -= o.weight;
+  }
+}
+
+
 
     /* ===== ボタン処理 ===== */
     function drawOmikuji() {
